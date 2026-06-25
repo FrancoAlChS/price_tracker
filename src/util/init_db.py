@@ -4,7 +4,7 @@ def init_db():
     conn = sqlite3.connect("precios.db")
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS ofertas (
+        CREATE TABLE IF NOT EXISTS offers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tienda TEXT,
             producto TEXT,

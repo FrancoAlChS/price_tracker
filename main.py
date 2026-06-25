@@ -1,20 +1,31 @@
-from src.scrapping.scrapping_page import scrapping_page
-from src.models.store_config import StoreConfig
-from src.scrapping.store_enum import Stores
-import asyncio
+from flask import Flask
+from src.controllers.store_controller import store_controller
+from src.util.db_connection import db_connection
 
-# Paginas de categoria por tienda
-stores_list: list[StoreConfig] = [
-    StoreConfig(
-        Stores.FALLABELLA, 
-        ["https://www.falabella.com.pe/falabella-pe/category/cat1470534/Zapatillas-urbanas-mujer"]
-    ),
-    StoreConfig(
-        Stores.OECHSLE, 
-        ["https://www.oechsle.pe/tecnologia/"]
-    )
-]
+app = Flask(__name__)
 
-if __name__ == "__main__":
-    asyncio.run(scrapping_page(stores_list)) 
-    
+app.register_blueprint(store_controller, url_prefix="/api/stores")
+
+@app.route('/')
+def home():
+    return '¡Hola desde Flask y UV!'
+
+
+
+def init_db():
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS stores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return conn
+
+
+if __name__ == '__main__':
+    init_db()
+    app.run(port=3000, debug=True)
