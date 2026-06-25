@@ -1,11 +1,11 @@
 
 import time
-from typing import Any
 from playwright.async_api import async_playwright
 from src.models.store_config import StoreConfig
 from src.scrapping.scrapping_factory import ScrappingFactory
 from src.util.send_telegram import send_telegram
 from src.util.init_db import init_db
+from src.models.product import Product
 
 async def scrapping_page(stores: list[StoreConfig]):
     conn = init_db()
@@ -33,7 +33,7 @@ async def scrapping_page(stores: list[StoreConfig]):
             print(f"Escaneando: {store_name}")
             print(f"{'='*50}")
 
-            total_offers:list[Any] = []
+            total_offers:list[Product] = []
 
             for url in store_config.urls:
                 print(f"\n  URL: {url}")
@@ -52,7 +52,7 @@ async def scrapping_page(stores: list[StoreConfig]):
             for offer in total_offers:
                 cursor.execute(
                     "SELECT id FROM ofertas WHERE url = ? AND tienda = ? AND fecha > datetime('now', '-1 day')",
-                    (offer["url"], offer["tienda"]),
+                    (offer.url, offer.store),
                 )
                 if cursor.fetchone():
                     continue
@@ -60,20 +60,20 @@ async def scrapping_page(stores: list[StoreConfig]):
                 message = formatear_mensaje(offer)
                 if send_telegram(message):
                     ofertas_enviadas += 1
-                    print(f"  [ENViado] {offer['producto'][:50]} - {offer['descuento_pct']:.0f}%")
+                    print(f"  [ENViado] {offer.name[:50]} - {offer.discount:.0f}%")
 
                 cursor.execute(
                     """INSERT INTO ofertas
                        (tienda, producto, precio_actual, precio_original, descuento_pct, categoria, url, enviado)
                        VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
                     (
-                        offer["tienda"],
-                        offer["producto"],
-                        offer["precio_actual"],
-                        offer["precio_original"],
-                        offer["descuento_pct"],
-                        offer["categoria"],
-                        offer["url"],
+                        offer.store,
+                        offer.name,
+                        offer.discount_price,
+                        offer.price,
+                        offer.discount,
+                        offer.category,
+                        offer.url,
                     ),
                 )
                 conn.commit()
@@ -87,15 +87,15 @@ async def scrapping_page(stores: list[StoreConfig]):
     print(f"{'='*50}")
 
 
-def formatear_mensaje(prod:Any):
-    ahorro = prod["precio_original"] - prod["precio_actual"]
+def formatear_mensaje(prod:Product):
+    ahorro = prod.price - prod.discount_price
     return (
         f"{'='*40}\n"
-        f"TIENDA: {prod['tienda']}\n"
-        f"CATEGORIA: {prod['categoria']}\n\n"
-        f"{prod['producto']}\n\n"
-        f"Antes: S/. {prod['precio_original']:.2f}\n"
-        f"Ahora: S/. {prod['precio_actual']:.2f}\n"
-        f"DESCUENTO: {prod['descuento_pct']:.0f}% (-S/. {ahorro:.2f})\n\n"
-        f"{prod['url']}"
+        f"TIENDA: {prod.store}\n"
+        f"CATEGORIA: {prod.category}\n\n"
+        f"{prod.store}\n\n"
+        f"Antes: S/. {prod.price:.2f}\n"
+        f"Ahora: S/. {prod.discount_price:.2f}\n"
+        f"DESCUENTO: {prod.discount:.0f}% (-S/. {ahorro:.2f})\n\n"
+        f"{prod.url}"
     )

@@ -1,14 +1,15 @@
 import json
 import re
-from typing import Any
 from playwright.async_api import Page
 from src.util.pase_numero import parse_numero
 from src.config.enviroments import MINIMUN_DISCOUNT
 from src.scrapping.stores.store_page import StorePage
+from src.models.product import Product
+from src.scrapping.store_enum import Stores
 
 class FallabellaStore(StorePage):
-    async def scrapping(self, page: Page, url: str) -> list[Any]:
-        productos: list[Any] = []
+    async def scrapping(self, page: Page, url: str) -> list[Product]:
+        products: list[Product] = []
         await page.goto(url, wait_until="domcontentloaded", timeout=60000)
         await page.wait_for_timeout(4000)
 
@@ -19,25 +20,25 @@ class FallabellaStore(StorePage):
             }
         """)
         if not next_data:
-            return productos
+            return products
 
         try:
             data = json.loads(next_data)
         except json.JSONDecodeError:
-            return productos
+            return products
 
         results = data.get("props", {}).get("pageProps", {}).get("results", [])
         if not results:
-            return productos
+            return products
 
         for item in results:
             try:
-                nombre = item.get("displayName", "Sin nombre")
+                name = item.get("displayName", "Sin nombre")
                 prices = item.get("prices", [])
 
                 # Buscar precio de oferta (eventPrice o internetPrice) y precio normal (normalPrice)
-                precio_actual = None
-                precio_original = None
+                current_price = None
+                original_price = None
 
                 for p in prices:
                     ptype = p.get("type", "")
@@ -48,25 +49,25 @@ class FallabellaStore(StorePage):
                         val = None
 
                     if ptype in ("eventPrice", "internetPrice") and val:
-                        precio_actual = val
+                        current_price = val
                     elif ptype == "normalPrice" and val:
-                        precio_original = val
+                        original_price = val
 
-                if not precio_actual:
+                if not current_price:
                     continue
 
-                if not precio_original:
-                    precio_original = precio_actual
+                if not original_price:
+                    original_price = current_price
 
                 # Usar discountBadge si existe
                 badge = item.get("discountBadge", {}).get("label", "")
                 badge_match = re.search(r"(\d+)", badge)
                 if badge_match:
-                    descuento = float(badge_match.group(1))
+                    discount = float(badge_match.group(1))
                 else:
-                    descuento = ((precio_original - precio_actual) / precio_original * 100) if precio_original > 0 else 0
+                    discount = ((original_price - current_price) / original_price * 100) if original_price > 0 else 0
 
-                if descuento <  MINIMUN_DISCOUNT:
+                if discount <  MINIMUN_DISCOUNT:
                     continue
 
                 product_url = item.get("url", "")
@@ -75,19 +76,21 @@ class FallabellaStore(StorePage):
 
                 # Categoria desde la URL
                 cat_match = re.search(r"/category/[^/]+/(.+?)(?:\?|$)", url)
-                categoria = cat_match.group(1).replace("-", " ").title() if cat_match else "General"
+                category = cat_match.group(1).replace("-", " ").title() if cat_match else "General"
 
-                productos.append({
-                    "tienda": "Falabella",
-                    "producto": nombre[:100],
-                    "precio_actual": precio_actual,
-                    "precio_original": precio_original,
-                    "descuento_pct": descuento,
-                    "categoria": categoria,
-                    "url": product_url,
-                })
+
+                product = Product(
+                    Stores.FALLABELLA, 
+                    name[:100],
+                    original_price,
+                    discount,
+                    current_price,
+                    category,
+                    product_url)
+                
+                products.append(product)
 
             except Exception:
                 continue
 
-        return productos
+        return products

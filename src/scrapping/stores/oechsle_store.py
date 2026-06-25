@@ -1,14 +1,15 @@
 from playwright.async_api import Page
 from src.util.pase_numero import parse_numero
 from src.config.enviroments import MINIMUN_DISCOUNT
-from typing import Any
 import re
 from src.scrapping.stores.store_page import StorePage
+from src.models.product import Product
+from src.scrapping.store_enum import Stores
 
 class OechsleStore(StorePage):
 
-    async def scrapping(self, page: Page, url: str) -> list[Any]:
-        productos: list[Any] = []
+    async def scrapping(self, page: Page, url: str) -> list[Product]:
+        products: list[Product] = []
         await page.goto(url, wait_until="domcontentloaded", timeout=60000)
         await page.wait_for_timeout(5000)
 
@@ -34,42 +35,44 @@ class OechsleStore(StorePage):
         }""")
 
         cat_match = re.search(r"oechsle\.pe/([^/]+)", url)
-        categoria = cat_match.group(1).replace("-", " ").title() if cat_match else "General"
+        category = cat_match.group(1).replace("-", " ").title() if cat_match else "General"
 
         for item in items:
             try:
-                nombre = item.get("name", "")
-                if not nombre:
+                name = item.get("name", "")
+                if not name:
                     continue
 
-                precio_actual = parse_numero(item.get("currentPrice", ""))
-                precio_original = parse_numero(item.get("originalPrice", ""))
+                current_price = parse_numero(item.get("currentPrice", ""))
+                original_price = parse_numero(item.get("originalPrice", ""))
 
-                if not precio_actual:
+                if not current_price:
                     continue
-                if not precio_original:
-                    precio_original = precio_actual
+                if not original_price:
+                    original_price = current_price
 
-                descuento = ((precio_original - precio_actual) / precio_original * 100) if precio_original > 0 else 0
+                discount = ((original_price - current_price) / original_price * 100) if original_price > 0 else 0
 
-                if descuento < MINIMUN_DISCOUNT:
+                if discount < MINIMUN_DISCOUNT:
                     continue
 
                 href = item.get("href", "")
                 if href and not href.startswith("http"):
                     href = f"https://www.oechsle.pe{href}"
 
-                productos.append({
-                    "tienda": "Oechsle",
-                    "producto": nombre[:100],
-                    "precio_actual": precio_actual,
-                    "precio_original": precio_original,
-                    "descuento_pct": round(descuento, 1),
-                    "categoria": categoria,
-                    "url": href,
-                })
 
+                product = Product(
+                    Stores.OECHSLE, 
+                    name[:100], 
+                    original_price, 
+                    round(discount, 1), 
+                    current_price, 
+                    category, 
+                    href)
+
+                products.append(product)
+              
             except Exception:
                 continue
 
-        return productos
+        return products
