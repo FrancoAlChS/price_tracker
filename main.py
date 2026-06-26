@@ -1,10 +1,12 @@
 from flask import Flask
 from src.controllers.store_controller import store_controller
+from src.controllers.link_controller import link_controller
 from src.util.db_connection import db_connection
 
 app = Flask(__name__)
 
 app.register_blueprint(store_controller, url_prefix="/api/stores")
+app.register_blueprint(link_controller, url_prefix="/api/links")
 
 @app.route('/')
 def home():
