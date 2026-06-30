@@ -59,7 +59,7 @@ async def scrapping_page():
                     cursor = conn.cursor()
 
                     cursor.execute(
-                        "SELECT id FROM ofertas WHERE url = ? AND tienda = ? AND fecha > datetime('now', '-1 day')",
+                        "SELECT id FROM offers WHERE url = ? AND store = ? AND createdAt > datetime('now', '-1 day')",
                         (offer.url, offer.store),
                     )
                     if cursor.fetchone():
@@ -71,17 +71,17 @@ async def scrapping_page():
                         print(f"  [ENViado] {offer.name[:50]} - {offer.discount:.0f}%")
 
                     cursor.execute(
-                        """INSERT INTO ofertas
-                           (tienda, producto, precio_actual, precio_original, descuento_pct, categoria, url, enviado)
+                        """INSERT INTO offers
+                           (store, category, url, current_price, original_price, discount, product_name, sent)
                            VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
                         (
                             offer.store,
-                            offer.name,
+                            offer.category,
+                            offer.url,
                             offer.discount_price,
                             offer.price,
                             offer.discount,
-                            offer.category,
-                            offer.url,
+                            offer.name,
                         ),
                     )
                     conn.commit()

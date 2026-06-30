@@ -45,6 +45,20 @@ def init_db():
                 updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS offers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                store TEXT,
+                category TEXT,
+                url TEXT NOT NULL,
+                current_price REAL,
+                original_price REAL,
+                discount REAL,
+                product_name TEXT,
+                sent BOOLEAN DEFAULT 0,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         conn.commit()
         return conn
 
