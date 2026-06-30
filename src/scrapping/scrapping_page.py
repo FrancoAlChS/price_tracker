@@ -1,15 +1,21 @@
 
 import time
 from playwright.async_api import async_playwright
-from src.models.store_config import StoreConfig
 from src.scrapping.scrapping_factory import ScrappingFactory
 from src.util.send_telegram import send_telegram
-from src.util.init_db import init_db
+from src.util.db_connection import db_connection
 from src.models.product import Product
+from src.services.scraping_service import ScrapingService
 
-async def scrapping_page(stores: list[StoreConfig]):
-    conn = init_db()
-    cursor = conn.cursor()
+async def scrapping_page():
+    scraping_service = ScrapingService()
+    stores = scraping_service.get_stores_config()
+    telegram_config = scraping_service.get_telegram_config()
+
+    if not telegram_config:
+        print("\n[ERROR] No hay configuración de Telegram registrada. Use POST /api/telegram-config/")
+        return
+
     ofertas_enviadas = 0
 
     async with async_playwright() as p:
@@ -48,40 +54,41 @@ async def scrapping_page(stores: list[StoreConfig]):
 
                 time.sleep(3)
 
-            # Enviar ofertas a Telegram
             for offer in total_offers:
-                cursor.execute(
-                    "SELECT id FROM ofertas WHERE url = ? AND tienda = ? AND fecha > datetime('now', '-1 day')",
-                    (offer.url, offer.store),
-                )
-                if cursor.fetchone():
-                    continue
+                with db_connection() as conn:
+                    cursor = conn.cursor()
 
-                message = formatear_mensaje(offer)
-                if send_telegram(message):
-                    ofertas_enviadas += 1
-                    print(f"  [ENViado] {offer.name[:50]} - {offer.discount:.0f}%")
+                    cursor.execute(
+                        "SELECT id FROM ofertas WHERE url = ? AND tienda = ? AND fecha > datetime('now', '-1 day')",
+                        (offer.url, offer.store),
+                    )
+                    if cursor.fetchone():
+                        continue
 
-                cursor.execute(
-                    """INSERT INTO ofertas
-                       (tienda, producto, precio_actual, precio_original, descuento_pct, categoria, url, enviado)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
-                    (
-                        offer.store,
-                        offer.name,
-                        offer.discount_price,
-                        offer.price,
-                        offer.discount,
-                        offer.category,
-                        offer.url,
-                    ),
-                )
-                conn.commit()
+                    message = formatear_mensaje(offer)
+                    if send_telegram(message, telegram_config.token, telegram_config.chat_id):
+                        ofertas_enviadas += 1
+                        print(f"  [ENViado] {offer.name[:50]} - {offer.discount:.0f}%")
+
+                    cursor.execute(
+                        """INSERT INTO ofertas
+                           (tienda, producto, precio_actual, precio_original, descuento_pct, categoria, url, enviado)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
+                        (
+                            offer.store,
+                            offer.name,
+                            offer.discount_price,
+                            offer.price,
+                            offer.discount,
+                            offer.category,
+                            offer.url,
+                        ),
+                    )
+                    conn.commit()
                 time.sleep(1.5)
 
         await browser.close()
 
-    # conn.close()
     print(f"\n{'='*50}")
     print(f"COMPLETADO - Ofertas enviadas a Telegram: {ofertas_enviadas}")
     print(f"{'='*50}")
