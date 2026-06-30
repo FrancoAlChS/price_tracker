@@ -1,12 +1,14 @@
 from flask import Flask
 from src.controllers.store_controller import store_controller
 from src.controllers.link_controller import link_controller
+from src.controllers.telegram_controller import telegram_controller
 from src.util.db_connection import db_connection
 
 app = Flask(__name__)
 
 app.register_blueprint(store_controller, url_prefix="/api/stores")
 app.register_blueprint(link_controller, url_prefix="/api/links")
+app.register_blueprint(telegram_controller, url_prefix="/api/telegram-config")
 
 @app.route('/')
 def home():
@@ -32,6 +34,15 @@ def init_db():
                 store_id INTEGER NOT NULL,
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (store_id) REFERENCES stores(id)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS telegram_config (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                token TEXT NOT NULL,
+                chat_id TEXT NOT NULL,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
