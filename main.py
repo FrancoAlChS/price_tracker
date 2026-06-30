@@ -24,6 +24,16 @@ def init_db():
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                url TEXT NOT NULL,
+                store_id INTEGER NOT NULL,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (store_id) REFERENCES stores(id)
+            )
+        """)
         conn.commit()
         return conn
 

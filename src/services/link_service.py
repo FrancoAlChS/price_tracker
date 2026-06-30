@@ -18,7 +18,7 @@ class LinkService:
     def create(self, body:Any):
         with db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute( f"INSERT INTO {TABLE_NAME} (name) VALUES (?)", (body["name"],))
+            cursor.execute(f"INSERT INTO {TABLE_NAME} (name, url, store_id) VALUES (?, ?, ?)", (body["name"], body["url"], body["store_id"]))
             
             conn.commit()
 
@@ -27,7 +27,7 @@ class LinkService:
     def update(self, id:int, body:Any):
         with db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(f"UPDATE {TABLE_NAME} SET name = ? WHERE id = ?", (body["name"], str(id)))
+            cursor.execute(f"UPDATE {TABLE_NAME} SET name = ?, url = ?, store_id = ? WHERE id = ?", (body["name"], body["url"], body["store_id"], id))
             
             conn.commit()
 
