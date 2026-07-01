@@ -7,8 +7,8 @@ env/
 venv/
 .venv/
 .env
-*.db
-*.sqlite3
+data/*.db
+data/*.sqlite3
 .vscode/
 .idea/
 playwright-report/

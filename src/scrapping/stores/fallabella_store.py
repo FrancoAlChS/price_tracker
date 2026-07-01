@@ -11,7 +11,7 @@ class FallabellaStore(StorePage):
     async def scrapping(self, page: Page, url: str) -> list[Product]:
         products: list[Product] = []
         await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        await page.wait_for_timeout(4000)
+        await page.wait_for_timeout(2000)
 
         next_data = await page.evaluate("""
             () => {
