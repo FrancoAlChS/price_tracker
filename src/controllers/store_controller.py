@@ -10,7 +10,7 @@ def list_stores():
     response = product_service.list()
     return jsonify(response)
 
-@store_controller.route("/", methods=["POST"])
+@store_controller.route("", methods=["POST"])
 def create_store():
     body = request.get_json()
     response = product_service.create(body)

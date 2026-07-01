@@ -9,7 +9,7 @@ class ScrapingService:
         with db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT s.name as store_name, l.url, l.note
+                SELECT s.name as store_name, l.url
                 FROM links l
                 JOIN stores s ON l.store_id = s.id
             """)
@@ -21,11 +21,10 @@ class ScrapingService:
         for row in rows:
             store_name = row["store_name"]
             url = row["url"]
-            note = row["note"]
 
             if store_name not in stores_map:
                 stores_map[store_name] = []
-                notes_map[store_name] = note
+                notes_map[store_name] = None
 
             stores_map[store_name].append(url)
 

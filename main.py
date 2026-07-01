@@ -1,10 +1,19 @@
 from flask import Flask
+from flask_cors import CORS
 from src.controllers.store_controller import store_controller
 from src.controllers.link_controller import link_controller
 from src.controllers.telegram_controller import telegram_controller
 from src.util.db_connection import db_connection
+from src.util.scheduler import start_scheduler
+from src.config.enviroments import FRONTEND_URL
 
 app = Flask(__name__)
+# CORS(app, 
+#      resources={r"/*": {"origins": [FRONTEND_URL]}}, 
+#      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#      allow_headers=["Content-Type", "Authorization"])
+
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.register_blueprint(store_controller, url_prefix="/api/stores")
 app.register_blueprint(link_controller, url_prefix="/api/links")
@@ -65,4 +74,5 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()
-    app.run(port=3000, debug=True)
+    start_scheduler()
+    app.run(port=4000, debug=True, use_reloader=False)

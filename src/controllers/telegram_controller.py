@@ -10,7 +10,7 @@ def get_config():
     response = telegram_service.get()
     return jsonify(response)
 
-@telegram_controller.route('/', methods=["POST"])
+@telegram_controller.route('', methods=["POST"])
 def create_or_update_config():
     body = request.get_json()
     response = telegram_service.create_or_update(body)

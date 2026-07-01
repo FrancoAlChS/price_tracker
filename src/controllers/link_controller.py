@@ -10,7 +10,7 @@ def list_links():
     response = link_service.list()
     return jsonify(response)
 
-@link_controller.route("/", methods=["POST"])
+@link_controller.route("", methods=["POST"])
 def create_link():
     body = request.get_json()
     response = link_service.create(body)
